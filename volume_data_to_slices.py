@@ -43,6 +43,7 @@
 import matplotlib.pyplot as plt
 import os
 import numpy as np
+import PIL.Image
 
 def normalize_data(data):
 	max = data.max()
@@ -67,4 +68,17 @@ def save_volume_data_as_slices(data, folder, prefix, colormap):
                     # print("Before", im_data.shape)
                     im_data = np.ascontiguousarray(im_data) # To avoid the bug in imsave in matplotlib imsave (https://stackoverflow.com/questions/78269316/matplotlib-imsave-error-ndarray-is-not-c-contiguous-but-it-is)
                     # print("After", im_data.shape)
-                    plt.imsave(im_name, im_data, cmap=colormap)
+
+                    # When the slices for the nrrd
+                    if colormap == 'gray':
+                        plt.imsave(im_name, im_data, cmap=colormap)
+
+                    # When the slices for the seg.nrrd
+                    else:
+                        if im_data.dtype != np.uint8:
+                            im_data = (255.0 * im_data)
+                            im_data = np.rint(im_data)
+                                                
+                        # convert to PIL RBGA image
+                        img = PIL.Image.fromarray(np.uint8(im_data))
+                        img.save(im_name)
