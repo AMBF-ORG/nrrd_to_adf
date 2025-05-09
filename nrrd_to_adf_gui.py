@@ -434,6 +434,17 @@ class NRRD2ADFConverterGUI(QWidget):
             fs_rel_filepath = self.fs_filepath.text().split(common_path)[-1]
             adf_data.set_volume_shader_data(basepath, vs_rel_filepath, fs_rel_filepath)
             # print(adf_data.volume_data)
+        else:
+            ### Copy over shaders
+            curr_filepath = os.path.abspath(__file__)
+            if self._is_segmentation:
+                shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/seg_nrrd'
+            else:
+                shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/nrrd'
+
+            shader_to_dir = os.path.dirname(self.adf_filepath.text())
+            copy_shaders(shader_from_dir, shader_to_dir)
+            adf_data.set_volume_shader_data('shaders', 'shader.vs', 'shader.fs')
 
         adf_data.save(self.adf_filepath.text())
 

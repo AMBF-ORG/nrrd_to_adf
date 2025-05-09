@@ -47,6 +47,7 @@ from argparse import ArgumentParser
 import nrrd
 import yaml
 import os
+from distutils.dir_util import copy_tree
 import numpy as np
 from seg_nrrd_to_pngs import SegNrrdCoalescer
 from volume_data_to_slices import *
@@ -217,6 +218,10 @@ def is_segmentation_file(filename: str):
     return filename.endswith('.seg.nrrd')
 
 
+def copy_shaders(from_path, to_path: str):
+    copy_tree(from_path, to_path)
+
+
 def main():
     parser = ArgumentParser()
     parser.add_argument('-n', action='store', dest='nrrd_file', help='Specify NRRD filepath', required = True)
@@ -245,8 +250,7 @@ def main():
         print("INFO! Using the same path for slices as the ADF filepath")
 
     
-    ### Save ADF Data
-
+    ### Begin Parsing ADF Data
     rel_slices_path = os.path.relpath(parsed_args.slices_path, os.path.dirname(parsed_args.adf_filepath))
 
     adf_data =  nrrd_to_adf(nrrd_geometric_data,
@@ -264,11 +268,22 @@ def main():
                                                               "color": seg_info.color.as_dict(),
                                                               "label": seg_info.label,
                                                               "index": seg_info.index}
+
+    ### Copy over shaders
+    curr_filepath = os.path.abspath(__file__)
+    if _is_segmentation:
+        shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/seg_nrrd'
+    else:
+        shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/nrrd'
+
+    shader_to_dir = os.path.dirname(parsed_args.adf_filepath) + '/shaders'
+    copy_shaders(shader_from_dir, shader_to_dir)
+    adf_data.set_volume_shader_data('shaders', 'shader.vs', 'shader.fs')
             
+    ### Save ADF Data as ADF File
     adf_data.save(parsed_args.adf_filepath)
 
-    ###
-    # Save Slices
+    ### Save Slices
     if save_slices:
         if _is_segmentation:
             # self.nrrd_data = np.sum(self.nrrd_data, axis=-1)  # Coalesce along the last dimension
@@ -276,11 +291,7 @@ def main():
             nrrd_coalescer.parse_nrrd_data(nrrd_hdr, nrrd_data)
             nrrd_data = nrrd_coalescer.get_coalesced_data()
 
-
-
         save_volume_data_as_slices(nrrd_data, parsed_args.slices_path, parsed_args.slices_prefix, color_map)
-    
-    
 
     
     print("Exiting")
