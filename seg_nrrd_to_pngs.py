@@ -119,32 +119,39 @@ class SegNrrdCoalescer:
         self.x_dim_ratio = x_ratio
         self.y_dim_ratio = y_ratio
         self.z_dim_ratio = z_ratio
+        self.data_dims = -1
 
-    def set_nrrd(self, hdr, data):
+    def parse_nrrd_data(self, hdr, data):
         self.nrrd_hdr = hdr
-        self.nrrd_data = data[:, ::self.x_dim_ratio, ::self.y_dim_ratio, ::self.z_dim_ratio]
+        self.data_dims = len(data.shape)
+        if self.data_dims == 3:
+            self.nrrd_data = data[::self.x_dim_ratio, ::self.y_dim_ratio, ::self.z_dim_ratio]
+        elif self.data_dims == 4:
+            self.nrrd_data = data[:, ::self.x_dim_ratio, ::self.y_dim_ratio, ::self.z_dim_ratio]
+        else:
+            raise IndexError
 
     def _initialize_coalesced_data(self):
         # Create a 3D block where the first index refers to individual images,
         # The second index refers to x_dim, the third to y_dim and the fourth to z_dim(e.g. Z)
-
-        self.num_layers = self.nrrd_data.shape[0]
-        self.x_dim = self.nrrd_data.shape[1]
-        self.y_dim = self.nrrd_data.shape[2]
-        self.z_dim = self.nrrd_data.shape[3]
-
-        if self.num_layers > 0:
-            self.num_channels = 4
+        offset = 0
+        if self.data_dims == 3:
+            offset = 0
+            self.num_layers = 1
+        elif self.data_dims == 4:
+            offset = 1
+            self.num_layers = self.nrrd_data.shape[0]
         else:
-            self.num_channels = 1
+            raise IndexError
+        
+            
+        self.x_dim = self.nrrd_data.shape[offset + 0]
+        self.y_dim = self.nrrd_data.shape[offset + 1]
+        self.z_dim = self.nrrd_data.shape[offset + 2]
 
-        if self.num_channels == 1:
-            self._coalesced_data = np.zeros([self.x_dim, self.y_dim,  self.z_dim])
-        if self.num_channels == 4:
-            self._coalesced_data = np.zeros([self.x_dim, self.y_dim, self.z_dim, self.num_channels])
-        else:
-            # Throw some error or warning
-            pass
+        self._coalesced_data = np.zeros([self.x_dim, self.y_dim, self.z_dim, 4])
+
+
 
     @staticmethod
     def get_segments_infos(nrrd_hdr):
@@ -191,19 +198,21 @@ class SegNrrdCoalescer:
     def _coalesce_segments_into_3D_data(self):
         self._initialize_coalesced_data()
         self._segments_infos = SegNrrdCoalescer.get_segments_infos(self.nrrd_hdr)
-        if self.num_channels == 4:
-            start_time = time.time()
-            for seg_info in self._segments_infos:
-                # The segments can be separated into layers or collapsed. This implementation handles both
-                print('\t INFO! Processing Segment', seg_info.index, ": ", seg_info.name)
+        start_time = time.time()
+        for seg_info in self._segments_infos:
+            # The segments can be separated into layers or collapsed. This implementation handles both
+            print('\t INFO! Processing Segment', seg_info.index, ": ", seg_info.name)
+            if self.data_dims == 3:
+                seg_data = self.nrrd_data
+            elif self.data_dims == 4:
                 seg_data = self.nrrd_data[seg_info.layer, :, :, :]
-                rgba_data = self.binary_to_rgba(seg_data, seg_info.label, seg_info.color.as_list())
-                self._coalesced_data += rgba_data
 
-            self._coalesced_data = np.clip(self._coalesced_data, 0., 1.)
-            print("INFO! Coalescing segments took", time.time() - start_time, "seconds")
-        else:
-            raise Exception("ERROR! Expecting 4D data while provided data dimensions are", self.num_channels)
+            rgba_data = self.binary_to_rgba(seg_data, seg_info.label, seg_info.color.as_list())
+            self._coalesced_data += rgba_data
+
+        self._coalesced_data = np.clip(self._coalesced_data, 0., 1.)
+        print("INFO! Coalescing segments took", time.time() - start_time, "seconds")
+
         
     def get_coalesced_data(self):
         self._coalesce_segments_into_3D_data()
@@ -257,7 +266,7 @@ def main():
 
     nrrd_converter = SegNrrdCoalescer(int(parsed_args.x_skip), int(parsed_args.y_skip), int(parsed_args.z_skip))
     data, hdr = nrrd.read(parsed_args.nrrd_file)
-    nrrd_converter.set_nrrd(hdr, data)
+    nrrd_converter.parse_nrrd_data(hdr, data)
     nrrd_converter.print_segments_infos()
 
     data = nrrd_converter.get_coalesced_data()
