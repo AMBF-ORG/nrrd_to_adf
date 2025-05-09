@@ -48,7 +48,7 @@ import matplotlib.pyplot as plt
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QGridLayout, QFormLayout, QFileDialog, QLabel, QLineEdit, QCheckBox
 from PyQt5.QtCore import Qt
 from seg_nrrd_to_pngs import SegmentInfo, SegNrrdCoalescer
-from nrrd_to_adf import NrrdGeometricData, nrrd_to_adf, ADFData
+from nrrd_to_adf import *
 from volume_data_to_slices import save_volume_data_as_slices
 
 
@@ -64,6 +64,8 @@ class NRRD2ADFConverterGUI(QWidget):
         self.nrrd_geometric_data = NrrdGeometricData()
         self.geometric_widgets_list = []
         self.sub_layout_vspace = 30
+        self._is_segmentation = False
+        self.color_map = 'gray'
 
         self.initUI()
 
@@ -326,6 +328,7 @@ class NRRD2ADFConverterGUI(QWidget):
             self.nrrd_filepath.setText(nrrd_filepath)
             self.load_nrrd_button.setEnabled(True)
             self.load_hdr_button.setEnabled(True)
+            self._is_segmentation =  is_segmentation_file(nrrd_filepath)
 
     def load_nrrd_cb(self):
         if self.nrrd_filepath.text():
@@ -333,9 +336,11 @@ class NRRD2ADFConverterGUI(QWidget):
             self.nrrd_geometric_data.load(self.nrrd_header)
             self._set_layout_from_nrrd_geometric_data(self.nrrd_geometric_data)
 
-            if len(self.nrrd_data.shape) == 4:  # Handle 4D segmentation data
+            self.color_map = 'jet' if self._is_segmentation else 'gray'
+
+            if self._is_segmentation:
                 nrrd_coalescer = SegNrrdCoalescer()
-                nrrd_coalescer.set_nrrd(self.nrrd_header, self.nrrd_data)
+                nrrd_coalescer.parse_nrrd_data(self.nrrd_header, self.nrrd_data)
                 self.nrrd_data = nrrd_coalescer.get_coalesced_data()
 
             self.show_slices_button.setEnabled(True)
@@ -365,18 +370,16 @@ class NRRD2ADFConverterGUI(QWidget):
             w.setEnabled(state)
 
     def update_slices(self):
-        cmap = 'gray' if 'segmentation' not in self.nrrd_header.get('type', '').lower() else 'jet'
-        
         self.axes[0].cla()
-        self.axes[0].imshow(self.nrrd_data[self.current_slice[0], :, :], cmap=cmap)
+        self.axes[0].imshow(self.nrrd_data[self.current_slice[0], :, :], cmap=self.color_map)
         self.axes[0].set_title(f"Axial Slice {self.current_slice[0]}")
         
         self.axes[1].cla()
-        self.axes[1].imshow(self.nrrd_data[:, self.current_slice[1], :], cmap=cmap)
+        self.axes[1].imshow(self.nrrd_data[:, self.current_slice[1], :], cmap=self.color_map)
         self.axes[1].set_title(f"Coronal Slice {self.current_slice[1]}")
         
         self.axes[2].cla()
-        self.axes[2].imshow(self.nrrd_data[:, :, self.current_slice[2]], cmap=cmap)
+        self.axes[2].imshow(self.nrrd_data[:, :, self.current_slice[2]], cmap=self.color_map)
         self.axes[2].set_title(f"Sagittal Slice {self.current_slice[2]}")
         
         self.fig.canvas.draw()
@@ -408,8 +411,7 @@ class NRRD2ADFConverterGUI(QWidget):
             self.slices_path.setText(folder)
 
     def save_slices_as_pngs_cb(self):
-        color_map = 'gray' if 'segmentation' not in self.nrrd_header.get('type', '').lower() else 'jet'
-        save_volume_data_as_slices(self.nrrd_data, self.slices_path.text(), self.slices_prefix.text(), color_map)
+        save_volume_data_as_slices(self.nrrd_data, self.slices_path.text(), self.slices_prefix.text(), self.color_map)
 
     def save_adf_cb(self):
         if self.override_geometric.isChecked():

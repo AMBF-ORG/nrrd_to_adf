@@ -213,6 +213,9 @@ def nrrd_to_adf(nrrd_geometric_data: NrrdGeometricData, nrrd_filepath="", slices
     adf_data.set_parent_body_name_attribute(adf_data.volume_data["name"] + "_Anatomical_Origin")
     return adf_data
 
+def is_segmentation_file(filename: str):
+    return filename.endswith('.seg.nrrd')
+
 
 def main():
     parser = ArgumentParser()
@@ -228,6 +231,8 @@ def main():
 
     nrrd_data, nrrd_hdr = nrrd.read(parsed_args.nrrd_file)
 
+    _is_segmentation = is_segmentation_file(parsed_args.nrrd_file)
+
     nrrd_geometric_data = NrrdGeometricData()
     nrrd_geometric_data.load(nrrd_hdr)
 
@@ -239,15 +244,8 @@ def main():
         parsed_args.slices_path = os.path.dirname(parsed_args.adf_filepath)
         print("INFO! Using the same path for slices as the ADF filepath")
 
-    if save_slices:
-        color_map = 'gray' if 'segmentation' not in nrrd_hdr.get('type', '').lower() else 'jet'
-        if len(nrrd_data.shape) == 4:  # Handle 4D segmentation data
-            # self.nrrd_data = np.sum(self.nrrd_data, axis=-1)  # Coalesce along the last dimension
-            nrrd_coalescer = SegNrrdCoalescer()
-            nrrd_coalescer.set_nrrd(nrrd_hdr, nrrd_data)
-            nrrd_data = nrrd_coalescer.get_coalesced_data()
-
-        save_volume_data_as_slices(nrrd_data, parsed_args.slices_path, parsed_args.slices_prefix, color_map)
+    
+    ### Save ADF Data
 
     rel_slices_path = os.path.relpath(parsed_args.slices_path, os.path.dirname(parsed_args.adf_filepath))
 
@@ -255,8 +253,10 @@ def main():
                             parsed_args.nrrd_file,
                             rel_slices_path,
                             parsed_args.slices_prefix)
-    
-    if len(nrrd_data.shape) == 4:
+
+    color_map = 'jet' if _is_segmentation else 'gray'
+
+    if _is_segmentation:
         seg_infos = SegNrrdCoalescer.get_segments_infos(nrrd_hdr)
         adf_data.meta_data["segments"] = OrderedDict()
         for seg_info in seg_infos:
@@ -264,8 +264,25 @@ def main():
                                                               "color": seg_info.color.as_dict(),
                                                               "label": seg_info.label,
                                                               "index": seg_info.index}
-
+            
     adf_data.save(parsed_args.adf_filepath)
+
+    ###
+    # Save Slices
+    if save_slices:
+        if _is_segmentation:
+            # self.nrrd_data = np.sum(self.nrrd_data, axis=-1)  # Coalesce along the last dimension
+            nrrd_coalescer = SegNrrdCoalescer()
+            nrrd_coalescer.parse_nrrd_data(nrrd_hdr, nrrd_data)
+            nrrd_data = nrrd_coalescer.get_coalesced_data()
+
+
+
+        save_volume_data_as_slices(nrrd_data, parsed_args.slices_path, parsed_args.slices_prefix, color_map)
+    
+    
+
+    
     print("Exiting")
     
 
