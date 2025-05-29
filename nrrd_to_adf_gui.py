@@ -442,7 +442,7 @@ class NRRD2ADFConverterGUI(QWidget):
             else:
                 shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/nrrd'
 
-            shader_to_dir = os.path.dirname(self.adf_filepath.text())
+            shader_to_dir = os.path.dirname(self.adf_filepath.text()) + '/shaders'
             copy_shaders(shader_from_dir, shader_to_dir)
             adf_data.set_volume_shader_data('shaders', 'shader.vs', 'shader.fs')
 
