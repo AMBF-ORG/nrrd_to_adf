@@ -334,7 +334,7 @@ class NRRD2ADFConverterGUI(QWidget):
             self._set_layout_from_nrrd_geometric_data(self.nrrd_geometric_data)
 
             header_type = self.nrrd_header.get('type', '').lower()
-            cmap = 'jet' if any(x in header_type for x in ['segmentation', 'short']) else 'gray'
+            cmap = 'jet' if any(x in header_type for x in ['segmentation', 'short', 'unsigned char']) else 'gray'
             if cmap == 'jet':  # Handle 4D segmentation data
                 nrrd_coalescer = SegNrrdCoalescer()
                 nrrd_coalescer.set_nrrd(self.nrrd_header, self.nrrd_data)
@@ -368,7 +368,7 @@ class NRRD2ADFConverterGUI(QWidget):
 
     def update_slices(self):
         header_type = self.nrrd_header.get('type', '').lower()
-        cmap = 'jet' if any(x in header_type for x in ['segmentation', 'short']) else 'gray'
+        cmap = 'jet' if any(x in header_type for x in ['segmentation', 'short', 'unsigned char']) else 'gray'
         
         self.axes[0].cla()
         self.axes[0].imshow(self.nrrd_data[self.current_slice[0], :, :], cmap=cmap)
@@ -412,7 +412,7 @@ class NRRD2ADFConverterGUI(QWidget):
 
     def save_slices_as_pngs_cb(self):
         header_type = self.nrrd_header.get('type', '').lower()
-        color_map = 'jet' if any(x in header_type for x in ['segmentation', 'short']) else 'gray'
+        color_map = 'jet' if any(x in header_type for x in ['segmentation', 'short', 'unsigned char']) else 'gray'
         print(color_map)
         save_volume_data_as_slices(self.nrrd_data, self.slices_path.text(), self.slices_prefix.text(), color_map)
 
