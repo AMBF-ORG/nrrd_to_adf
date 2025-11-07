@@ -347,6 +347,9 @@ class NRRD2ADFConverterGUI(QWidget):
             self.show_slices_button.setEnabled(True)
             self.save_slices_button.setEnabled(True)
             self.current_slice = [self.nrrd_data.shape[0] // 2, self.nrrd_data.shape[1] // 2, self.nrrd_data.shape[2] // 2]
+            self.adf_filepath.setText(os.path.splitext(self.nrrd_filepath.text())[0] + ".yaml")
+            self.slices_path.setText(os.path.splitext(self.nrrd_filepath.text())[0] + "_slices")
+            self.save_adf_button.setEnabled(True)
             # print("NRRD Metadata:", self.nrrd_header)
             # self.show_slices()
 
