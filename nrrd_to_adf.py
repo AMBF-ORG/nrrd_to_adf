@@ -101,7 +101,7 @@ class ADFData:
         self.meta_data["ADF Version"] = 1.0
         self.meta_data["volumes"] = []
         self.meta_data["bodies"] = []
-        
+
         self.volume_data = {
             "name": "",
             "location": {
@@ -157,6 +157,9 @@ class ADFData:
         self.volume_data["shaders"]["path"] = basepath
         self.volume_data["shaders"]["vertex"] = vs_filepath
         self.volume_data["shaders"]["fragment"] = fs_filepath
+
+    def set_volume_color_lut_data(self, lut_filepath):
+        self.volume_data["color lut"] = lut_filepath
 
     def set_parent_body_name_attribute(self, name):
         self.parent_body_data["name"] = self.get_valid_ros_name(name)
@@ -237,6 +240,7 @@ def main():
     parser.add_argument('-n', action='store', dest='nrrd_file', help='Specify NRRD filepath', required = True)
     parser.add_argument('-a', action='store', dest='adf_filepath', help='Specify ADF filepath', required = True)
     parser.add_argument('-p', action='store', dest='slices_prefix', help='Specify slices prefix', default='slice0')
+    parser.add_argument('-c', action='store', dest='color_lut', help='Set Color LUT', required=False)
     parser.add_argument('-s', action='store', dest="save_slices", help="Save slices. Can choose not to save slices again if they are already saved", default=True)
     parser.add_argument('--slices_path', action='store', dest="slices_path", help="Specify path for slices, defaults to the location of ADF filepath", default=None)
     
@@ -267,6 +271,11 @@ def main():
                             parsed_args.nrrd_file,
                             rel_slices_path,
                             parsed_args.slices_prefix)
+    
+    if parsed_args.color_lut:
+        print("INFO! Setting Color LUT to:", parsed_args.color_lut)
+        rel_lut_path = os.path.relpath(parsed_args.color_lut, os.path.dirname(parsed_args.adf_filepath))
+        adf_data.set_volume_color_lut_data(rel_lut_path)
 
     color_map = 'jet' if _is_segmentation else 'gray'
 
@@ -284,7 +293,10 @@ def main():
     if _is_segmentation:
         shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/seg_nrrd'
     else:
-        shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/nrrd'
+        if parsed_args.color_lut:
+            shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/nrrd_lut'
+        else:
+            shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/nrrd'
 
     shader_to_dir = os.path.dirname(parsed_args.adf_filepath) + '/shaders'
     copy_shaders(shader_from_dir, shader_to_dir)

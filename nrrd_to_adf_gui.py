@@ -221,26 +221,51 @@ class NRRD2ADFConverterGUI(QWidget):
         layout.setVerticalSpacing(self.sub_layout_vspace)
         shader_layout = QGridLayout()
 
+        self.group_label = QLabel("STEP 2B - SHADERS (OPTIONAL)")
+        self.group_label.setAlignment(Qt.AlignCenter)
+        shader_layout.addWidget(self.group_label, 0, 0, 1, 4)
+
         self.specify_shaders = QCheckBox("Specify Shaders", self)
         self.specify_shaders.setChecked = False
         self.specify_shaders.clicked.connect(self.specify_shaders_cb)
-        shader_layout.addWidget(self.specify_shaders, 0, 0)
+        shader_layout.addWidget(self.specify_shaders, 1, 0)
 
         self.vs_filepath = QLineEdit(self)
-        shader_layout.addWidget(self.vs_filepath, 1, 0, 1, 3)
+        shader_layout.addWidget(self.vs_filepath, 2, 0, 1, 3)
 
         self.select_vs_filepath = QPushButton("Select Vertex Shader", self)
         self.select_vs_filepath.clicked.connect(self.select_vs_filepath_cb)
-        shader_layout.addWidget(self.select_vs_filepath, 1, 3)
+        shader_layout.addWidget(self.select_vs_filepath, 2, 3)
 
         self.fs_filepath = QLineEdit(self)
-        shader_layout.addWidget(self.fs_filepath, 2, 0, 1, 3)
+        shader_layout.addWidget(self.fs_filepath, 3, 0, 1, 3)
 
         self.select_fs_filepath = QPushButton("Select Fragment Shader", self)
         self.select_fs_filepath.clicked.connect(self.select_fs_filepath_cb)
-        shader_layout.addWidget(self.select_fs_filepath, 2, 3)
+        shader_layout.addWidget(self.select_fs_filepath, 3, 3)
 
-        layout.addLayout(shader_layout, 3, 0, 1, 4)
+        layout.addLayout(shader_layout, 4, 0, 1, 4)
+
+        # Color LUT Layout
+        layout.setVerticalSpacing(self.sub_layout_vspace)
+        lut_layout = QGridLayout()
+
+        self.group_label = QLabel("STEP 2C - COLOR LOOKUP TABLE (LUT) FILE 1D IMAGE (OPTIONAL)")
+        self.group_label.setAlignment(Qt.AlignCenter)
+        lut_layout.addWidget(self.group_label, 0, 0, 1, 4)
+
+        self.color_lut_label = QLabel("COLOR LUT FILE:", self)
+        lut_layout.addWidget(self.color_lut_label, 1, 0)
+
+        self.color_lut_filepath = QLineEdit(self)
+        lut_layout.addWidget(self.color_lut_filepath, 1, 1)
+
+        self.select_lut_filepath_button = QPushButton("...", self)
+        self.select_lut_filepath_button.clicked.connect(self.select_lut_filepath_cb)
+        lut_layout.addWidget(self.select_lut_filepath_button, 1, 2)
+
+        layout.addLayout(lut_layout, 5, 0)
+
 
         # ADF Layout
         layout.setVerticalSpacing(self.sub_layout_vspace)
@@ -265,7 +290,7 @@ class NRRD2ADFConverterGUI(QWidget):
         self.save_adf_button.setEnabled(False)
         adf_layout.addWidget(self.save_adf_button, 2, 0, 1, 4)
 
-        layout.addLayout(adf_layout, 4, 0)
+        layout.addLayout(adf_layout, 6, 0)
         
         # Finalize
         self.setLayout(layout)
@@ -430,6 +455,11 @@ class NRRD2ADFConverterGUI(QWidget):
                                rel_slices_path,
                                self.slices_prefix.text())
         
+        # Add color lut data if provided
+        if self.color_lut_filepath.text():
+            rel_lut_path = os.path.relpath(self.color_lut_filepath.text(), os.path.dirname(self.adf_filepath.text()))
+            adf_data.set_volume_color_lut_data(rel_lut_path)
+        
         # Add shader data if provided
         if self.specify_shaders.isChecked():
             common_path = os.path.commonpath([self.vs_filepath.text(), self.fs_filepath.text()])
@@ -444,13 +474,23 @@ class NRRD2ADFConverterGUI(QWidget):
             if self._is_segmentation:
                 shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/seg_nrrd'
             else:
-                shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/nrrd'
+                if self.color_lut_filepath.text():
+                    shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/nrrd_lut'
+                else:
+                    shader_from_dir = os.path.dirname(curr_filepath) + '/shaders/nrrd'
 
             shader_to_dir = os.path.dirname(self.adf_filepath.text()) + '/shaders'
             copy_shaders(shader_from_dir, shader_to_dir)
             adf_data.set_volume_shader_data('shaders', 'shader.vs', 'shader.fs')
 
         adf_data.save(self.adf_filepath.text())
+
+
+    def select_lut_filepath_cb(self):
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Select", "", "Image Files (*.png *.jpg *.jpeg *.bmp);;All Files (*.*)", options=options)
+        if file_path:
+            self.color_lut_filepath.setText(file_path)
 
 
     def select_adf_filepath_cb(self):
