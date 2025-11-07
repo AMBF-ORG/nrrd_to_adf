@@ -51,6 +51,7 @@ from distutils.dir_util import copy_tree
 import numpy as np
 from seg_nrrd_to_pngs import SegNrrdCoalescer
 from volume_data_to_slices import *
+import re
 
 class NrrdGeometricData:
     def __init__(self):
@@ -194,8 +195,7 @@ class ADFData:
 
     @staticmethod
     def get_valid_ros_name(a_str: str):
-        valid_str = a_str.replace('-', '_')
-        valid_str = valid_str.replace('.', '_')
+        valid_str = re.sub(r'[^a-zA-Z0-9_/]', '', a_str)
         return valid_str
 
 
