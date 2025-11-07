@@ -296,17 +296,18 @@ class NRRD2ADFConverterGUI(QWidget):
 
     def _get_nrrd_geometric_data_from_layout(self):
         nrrd_geometry = NrrdGeometricData()
-        nrrd_geometry.origin = np.array([0, 0, 0])
+        nrrd_geometry.origin = np.array([0., 0., 0.])
         nrrd_geometry.origin[0] = float(self.origin_x.text())
         nrrd_geometry.origin[1] = float(self.origin_y.text())
         nrrd_geometry.origin[2] = float(self.origin_z.text())
 
-        nrrd_geometry.orientation_rpy = np.array([0, 0, 0])
+        nrrd_geometry.orientation_rpy = np.array([0., 0., 0.])
         nrrd_geometry.orientation_rpy[0] = float(self.orientation_roll.text())
         nrrd_geometry.orientation_rpy[1] = float(self.orientation_pitch.text())
         nrrd_geometry.orientation_rpy[2] = float(self.orientation_yaw.text())
+        nrrd_geometry.orientation_mat = Rotation.from_euler('xyz', nrrd_geometry.orientation_rpy, degrees=False).as_matrix() #lower case 'xyz' is extrinsic, uppercase 'XYZ' is instrinsic
 
-        nrrd_geometry.dimensions = np.array([0, 0, 0])
+        nrrd_geometry.dimensions = np.array([0., 0., 0.])
         nrrd_geometry.dimensions[0] = float(self.dim_x.text())
         nrrd_geometry.dimensions[1] = float(self.dim_y.text())
         nrrd_geometry.dimensions[2] = float(self.dim_z.text())

@@ -128,10 +128,12 @@ class ADFData:
 
     def set_volume_geometric_attributes(self, geometric_data: NrrdGeometricData):
         g = geometric_data
+        if (g.orientation_mat is None):
+            g.orientation_mat = Rotation.from_euler('xyz', g.orientation_rpy, degrees=False).as_matrix() #lower case 'xyz' is extrinsic, uppercase 'XYZ' is instrinsic
         origin = (g.origin + (g.orientation_mat @ (g.dimensions * 0.5))) * g.units_scale # AMBF takes middle as origin, so add rotated half dimensional offset
         dimensions = g.dimensions * g.units_scale
         self.set_location_attributes(self.volume_data, origin, g.orientation_rpy)
-
+        
         self.volume_data["dimensions"]["x"] = float(dimensions[0])
         self.volume_data["dimensions"]["y"] = float(dimensions[1])
         self.volume_data["dimensions"]["z"] = float(dimensions[2])
