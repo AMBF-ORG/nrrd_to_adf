@@ -101,23 +101,31 @@ class ADFData:
         self.meta_data["ADF Version"] = 1.0
         self.meta_data["volumes"] = []
         self.meta_data["bodies"] = []
-
-        self.volume_data = OrderedDict()
-        self.volume_data["name"] = ""
-        self.volume_data["location"] = OrderedDict()
-        self.volume_data["location"]["position"] = {"x": 0.0, "y": 0.0, "z": 0.0}
-        self.volume_data["location"]["orientation"] = {"r": 0.0, "p": 0.0, "y": 0.0}
-        self.volume_data["scale"] = 1.0
+        
+        self.volume_data = {
+            "name": "",
+            "location": {
+                "position": {"x": 0.0, "y": 0.0, "z": 0.0},
+                "orientation": {"r": 0.0, "p": 0.0, "y": 0.0}
+            },
+            "scale": 1.0,
+            "dimensions": {"x": 0.0, "y": 0.0, "z": 0.0},
+            "images": {"path": "", "prefix": "", "count": 0, "format": "png"},
+            "iso-surface value": 0.5,
+        }
         self.volume_data["dimensions"] = {"x": 0.0, "y": 0.0, "z": 0.0}
         self.volume_data["images"] = {"path": "", "prefix": "", "count": 0, "format": "png"}
         self.volume_data["iso-surface value"]= 0.5
 
-        self.parent_body_data = OrderedDict()
-        self.parent_body_data["name"] = ""
-        self.parent_body_data["location"] = OrderedDict()
-        self.parent_body_data["location"]["position"] = {"x": 0.0, "y": 0.0, "z": 0.0}
-        self.parent_body_data["location"]["orientation"] = {"r": 0.0, "p": 0.0, "y": 0.0}
-        self.parent_body_data["mass"] = 0.0
+        self.parent_body_data = {
+            "name": "",
+            "location": {
+                "position": {"x": 0.0, "y": 0.0, "z": 0.0},
+                "orientation": {"r": 0.0, "p": 0.0, "y": 0.0}
+            },
+            "scale": 1.0,
+            "mass": 0.0
+        }
 
     def set_volume_name_from_nrrd_filepath(self, nrrd_filepath):
         self.volume_data["volume filepath"] = nrrd_filepath
@@ -181,7 +189,7 @@ class ADFData:
                 os.mkdir(adf_folder)
 
         with open(adf_filepath, 'w') as adf_file:
-            yaml.dump(adf_data, adf_file, default_flow_style=False)
+            yaml.dump(adf_data, adf_file, sort_keys=False, default_flow_style=False)
             print("Saving ADF", adf_filepath)
             adf_file.close()
 
