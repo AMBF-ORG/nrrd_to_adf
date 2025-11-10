@@ -112,7 +112,7 @@ void main(void)
         {
             vec3 tcr = refine(tc - tc_step, tc, uIsosurface, 1.0);
             vec3 nabla = gradient(tcr);
-            vec3 colorFromLUT = texture1D(uColorLUT, intensity);
+            vec3 colorFromLUT = texture1D(uColorLUT, intensity).rgb;
 
             float dt = length(tcr - tc) / length(tc_step);
             vec3 position = vPosition.xyz + (t - dt * t_step) * raydir;
